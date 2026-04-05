@@ -5,9 +5,25 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Геймификация — тренажёр</title>
   <link rel="stylesheet" href="./styles.css">
+  <script src="https://cdn.jsdelivr.net/npm/qrcode@1/build/qrcode.min.js"></script>
 </head>
 <body>
-  <button id="theme-toggle" class="theme-toggle" aria-label="Переключить тему">🌙</button>
+  <div class="toolbar">
+    <button id="btn-qr" class="toolbar-btn" aria-label="QR-код сайта">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="8" height="8" rx="1"/><rect x="14" y="2" width="8" height="8" rx="1"/><rect x="2" y="14" width="8" height="8" rx="1"/><rect x="14" y="14" width="4" height="4"/><line x1="22" y1="14" x2="22" y2="14.01"/><line x1="22" y1="22" x2="22" y2="22.01"/><line x1="18" y1="22" x2="18" y2="22.01"/><line x1="22" y1="18" x2="22" y2="18.01"/></svg>
+    </button>
+    <button id="theme-toggle" class="toolbar-btn" aria-label="Переключить тему">🌙</button>
+  </div>
+
+  <!-- QR-модалка -->
+  <div id="qr-overlay" class="qr-overlay hidden">
+    <div class="qr-modal">
+      <h3 class="qr-title">Поделиться</h3>
+      <canvas id="qr-canvas"></canvas>
+      <p id="qr-url" class="qr-url"></p>
+      <button id="btn-qr-close" class="btn-secondary">Закрыть</button>
+    </div>
+  </div>
 
   <main class="container">
     <!-- Стартовый экран -->

@@ -23,6 +23,11 @@ const el = {
   btnRetry: document.getElementById('btn-retry'),
   btnNewSession: document.getElementById('btn-new-session'),
   themeToggle: document.getElementById('theme-toggle'),
+  btnQr: document.getElementById('btn-qr'),
+  qrOverlay: document.getElementById('qr-overlay'),
+  qrCanvas: document.getElementById('qr-canvas'),
+  qrUrl: document.getElementById('qr-url'),
+  btnQrClose: document.getElementById('btn-qr-close'),
   loadError: document.getElementById('load-error'),
   questionText: document.getElementById('question-text'),
   optionsList: document.getElementById('options-list'),
@@ -278,6 +283,35 @@ el.btnStart.addEventListener('click', () => {
 el.btnNext.addEventListener('click', nextQuestion);
 el.btnRetry.addEventListener('click', retryMistakes);
 el.btnNewSession.addEventListener('click', () => showScreen('start'));
+
+// =========
+// QR-код
+// =========
+function showQr() {
+  const url = globalThis.location.href;
+  el.qrUrl.textContent = url;
+  if (typeof QRCode !== 'undefined') {
+    QRCode.toCanvas(el.qrCanvas, url, {
+      width: 200,
+      margin: 2,
+      color: {
+        dark: getComputedStyle(document.documentElement).getPropertyValue('--fg').trim(),
+        light: getComputedStyle(document.documentElement).getPropertyValue('--bg').trim(),
+      },
+    });
+  }
+  el.qrOverlay.classList.remove('hidden');
+}
+
+function hideQr() {
+  el.qrOverlay.classList.add('hidden');
+}
+
+el.btnQr.addEventListener('click', showQr);
+el.btnQrClose.addEventListener('click', hideQr);
+el.qrOverlay.addEventListener('click', (e) => {
+  if (e.target === el.qrOverlay) hideQr();
+});
 
 // =========
 // Темы
