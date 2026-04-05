@@ -1,0 +1,14 @@
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Python http.server artifacts
+__pycache__/
+*.pyc
+
+# Node (на будущее)
+node_modules/

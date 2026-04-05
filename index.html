@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Геймификация — тренажёр</title>
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <button id="theme-toggle" class="theme-toggle" aria-label="Переключить тему">🌙</button>
+
+  <main class="container">
+    <!-- Стартовый экран -->
+    <section id="screen-start" class="screen">
+      <h1>Геймификация — тренажёр</h1>
+      <p class="subtitle">Выберите набор вопросов:</p>
+
+      <div class="pack-options">
+        <label class="pack-option">
+          <input type="radio" name="pack" value="original" checked>
+          <span>Оригинальные (20)</span>
+        </label>
+        <label class="pack-option">
+          <input type="radio" name="pack" value="additional">
+          <span>Дополнительные (40)</span>
+        </label>
+        <label class="pack-option">
+          <input type="radio" name="pack" value="all">
+          <span>Все (60)</span>
+        </label>
+      </div>
+
+      <button id="btn-start" class="btn-primary">Начать</button>
+      <p id="load-error" class="error hidden"></p>
+    </section>
+
+    <!-- Экран вопроса -->
+    <section id="screen-question" class="screen hidden">
+      <div class="progress-bar"><div id="progress-fill" class="progress-fill"></div></div>
+      <p class="counter"><span id="current-num">1</span> / <span id="total-num">20</span></p>
+      <h2 id="question-text" class="question-text"></h2>
+      <div id="options-list" class="options-list"></div>
+      <div id="note-block" class="note-block hidden"></div>
+      <button id="btn-next" class="btn-primary hidden">Дальше</button>
+    </section>
+
+    <!-- Экран итогов -->
+    <section id="screen-results" class="screen hidden">
+      <h2>Результаты</h2>
+      <p class="score">Правильно: <span id="score-correct">0</span> из <span id="score-total">0</span></p>
+      <div id="mistakes-list" class="mistakes-list"></div>
+      <div class="results-actions">
+        <button id="btn-retry" class="btn-primary" disabled>Повторить только ошибки</button>
+        <button id="btn-new-session" class="btn-secondary">Новая сессия</button>
+      </div>
+    </section>
+  </main>
+
+  <script src="./app.js"></script>
+</body>
+</html>
