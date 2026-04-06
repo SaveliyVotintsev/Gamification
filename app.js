@@ -18,6 +18,9 @@ const el = {
   screenStart: document.getElementById('screen-start'),
   screenQuestion: document.getElementById('screen-question'),
   screenResults: document.getElementById('screen-results'),
+  screenBrowse: document.getElementById('screen-browse'),
+  browseList: document.getElementById('browse-list'),
+  btnBrowseBack: document.getElementById('btn-browse-back'),
   btnStart: document.getElementById('btn-start'),
   btnNext: document.getElementById('btn-next'),
   btnRetry: document.getElementById('btn-retry'),
@@ -38,6 +41,11 @@ const el = {
   scoreCorrect: document.getElementById('score-correct'),
   scoreTotal: document.getElementById('score-total'),
   mistakesList: document.getElementById('mistakes-list'),
+  scorePct: document.getElementById('score-pct'),
+  openAnswerArea: document.getElementById('open-answer-area'),
+  openInput: document.getElementById('open-input'),
+  btnSubmitAnswer: document.getElementById('btn-submit-answer'),
+  openFeedback: document.getElementById('open-feedback'),
 };
 
 // =========
@@ -47,11 +55,14 @@ function showScreen(name) {
   el.screenStart.classList.add('hidden');
   el.screenQuestion.classList.add('hidden');
   el.screenResults.classList.add('hidden');
+  el.screenBrowse.classList.add('hidden');
   let target;
   if (name === 'start') {
     target = el.screenStart;
   } else if (name === 'question') {
     target = el.screenQuestion;
+  } else if (name === 'browse') {
+    target = el.screenBrowse;
   } else {
     target = el.screenResults;
   }
@@ -66,10 +77,13 @@ async function loadQuiz() {
     const res = await fetch('./gamification_quiz.json');
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
-    if (!data || !Array.isArray(data.questions) || data.questions.length === 0) {
-      throw new Error('Некорректная структура JSON: нет массива questions');
+    const mc = (data.multiple_choice || []).map(q => ({ ...q, type: 'multiple_choice' }));
+    const open = (data.open_questions_octalysis || []).map(q => ({ ...q, type: 'open' }));
+    state.allQuestions = [...mc, ...open];
+    if (state.allQuestions.length === 0) {
+      throw new Error('Некорректная структура JSON: нет вопросов');
     }
-    state.allQuestions = data.questions;
+    updatePackCounts();
     el.btnStart.disabled = false;
   } catch (err) {
     console.error('Ошибка загрузки квиза:', err);
@@ -91,6 +105,13 @@ function shuffle(arr) {
   return result;
 }
 
+function updatePackCounts() {
+  const q = state.allQuestions;
+  document.getElementById('count-mc').textContent = q.filter(x => x.type === 'multiple_choice').length;
+  document.getElementById('count-open').textContent = q.filter(x => x.type === 'open').length;
+  document.getElementById('count-all').textContent = q.length;
+}
+
 function clearChildren(node) {
   while (node.firstChild) {
     node.firstChild.remove();
@@ -104,7 +125,7 @@ function startSession(questionsSource) {
   // questionsSource — уже отфильтрованный массив вопросов
   state.currentPool = shuffle(questionsSource).map(q => ({
     ...q,
-    options: shuffle(q.options),
+    options: q.options ? shuffle(q.options) : undefined,
   }));
   state.currentIndex = 0;
   state.answers = [];
@@ -115,11 +136,14 @@ function startSession(questionsSource) {
 }
 
 function getPackQuestions(pack) {
-  if (pack === 'original') {
-    return state.allQuestions.filter(q => q.type === 'original');
+  if (pack === 'multiple_choice') {
+    return state.allQuestions.filter(q => q.type === 'multiple_choice');
   }
-  if (pack === 'additional') {
-    return state.allQuestions.filter(q => q.type === 'additional');
+  if (pack === 'open') {
+    return state.allQuestions.filter(q => q.type === 'open');
+  }
+  if (pack === 'exam') {
+    return shuffle(state.allQuestions.slice()).slice(0, 20);
   }
   return state.allQuestions.slice();
 }
@@ -134,20 +158,35 @@ function renderQuestion() {
   const pct = (state.currentIndex / state.currentPool.length) * 100;
   el.progressFill.style.width = `${pct}%`;
 
-  // Варианты
+  // Сброс
   clearChildren(el.optionsList);
-  q.options.forEach(optText => {
-    const btn = document.createElement('button');
-    btn.className = 'option-btn';
-    btn.textContent = optText;
-    btn.addEventListener('click', () => handleAnswer(optText, btn));
-    el.optionsList.appendChild(btn);
-  });
-
-  // Сброс note и «Дальше»
   el.noteBlock.classList.add('hidden');
   el.noteBlock.textContent = '';
   el.btnNext.classList.add('hidden');
+  el.openAnswerArea.classList.add('hidden');
+  el.openFeedback.classList.remove('visible');
+  clearChildren(el.openFeedback);
+  el.openInput.value = '';
+  el.openInput.disabled = false;
+  el.btnSubmitAnswer.textContent = 'Ответить';
+  el.btnSubmitAnswer.classList.remove('hidden');
+
+  if (q.type === 'open') {
+    // Открытый вопрос
+    el.optionsList.classList.add('hidden');
+    el.openAnswerArea.classList.remove('hidden');
+    el.openInput.focus();
+  } else {
+    // Тестовый вопрос
+    el.optionsList.classList.remove('hidden');
+    q.options.forEach(optText => {
+      const btn = document.createElement('button');
+      btn.className = 'option-btn';
+      btn.textContent = optText;
+      btn.addEventListener('click', () => handleAnswer(optText, btn));
+      el.optionsList.appendChild(btn);
+    });
+  }
 }
 
 function handleAnswer(pickedOption, pickedBtn) {
@@ -182,6 +221,57 @@ function handleAnswer(pickedOption, pickedBtn) {
   el.btnNext.classList.remove('hidden');
 
   // Завершающий прогресс
+  const pct = ((state.currentIndex + 1) / state.currentPool.length) * 100;
+  el.progressFill.style.width = `${pct}%`;
+}
+
+// =========
+// Открытые вопросы
+// =========
+function normalizeAnswer(str) {
+  return str.trim().toLowerCase().replaceAll(/\s+/g, ' ').replaceAll(/[.,;:!?]+$/g, '');
+}
+
+function handleOpenAnswer() {
+  if (state.locked) return;
+  const input = el.openInput.value.trim();
+  if (!input) return;
+
+  state.locked = true;
+  el.openInput.disabled = true;
+  el.btnSubmitAnswer.textContent = 'Дальше';
+
+  const q = state.currentPool[state.currentIndex];
+  const isCorrect = normalizeAnswer(input) === normalizeAnswer(q.answer);
+  state.answers.push({ questionId: q.id, pickedOption: input, isCorrect });
+
+  clearChildren(el.openFeedback);
+
+  el.openFeedback.className = isCorrect
+    ? 'open-feedback visible open-feedback-correct'
+    : 'open-feedback visible open-feedback-wrong';
+
+  const yourLine = document.createElement('p');
+  yourLine.appendChild(document.createTextNode('Ваш ответ: '));
+  const inputSpan = document.createElement('span');
+  inputSpan.className = isCorrect ? 'correct-text' : 'wrong-text';
+  inputSpan.textContent = input;
+  yourLine.appendChild(inputSpan);
+  el.openFeedback.appendChild(yourLine);
+
+  const correctLine = document.createElement('p');
+  correctLine.appendChild(document.createTextNode('Правильно: '));
+  const correctSpan = document.createElement('span');
+  correctSpan.className = 'correct-text';
+  correctSpan.textContent = q.answer;
+  correctLine.appendChild(correctSpan);
+  el.openFeedback.appendChild(correctLine);
+
+  if (q.note) {
+    el.noteBlock.textContent = q.note;
+    el.noteBlock.classList.remove('hidden');
+  }
+
   const pct = ((state.currentIndex + 1) / state.currentPool.length) * 100;
   el.progressFill.style.width = `${pct}%`;
 }
@@ -235,8 +325,10 @@ function buildMistakeItem(question, answer) {
 function showResults() {
   const correct = state.answers.filter(a => a.isCorrect).length;
   const total = state.answers.length;
+  const pct = total > 0 ? Math.round((correct / total) * 100) : 0;
   el.scoreCorrect.textContent = correct;
   el.scoreTotal.textContent = total;
+  el.scorePct.textContent = `${pct}%`;
 
   // Список ошибок
   clearChildren(el.mistakesList);
@@ -258,6 +350,32 @@ function showResults() {
   showScreen('results');
 }
 
+function showBrowse() {
+  clearChildren(el.browseList);
+  state.allQuestions.forEach((q, i) => {
+    const item = document.createElement('div');
+    item.className = 'browse-item';
+
+    const num = document.createElement('span');
+    num.className = 'browse-num';
+    num.textContent = `${i + 1}.`;
+
+    const text = document.createElement('p');
+    text.className = 'browse-question';
+    text.textContent = q.text;
+
+    const answer = document.createElement('p');
+    answer.className = 'browse-answer';
+    answer.textContent = q.answer;
+
+    item.appendChild(num);
+    item.appendChild(text);
+    item.appendChild(answer);
+    el.browseList.appendChild(item);
+  });
+  showScreen('browse');
+}
+
 function retryMistakes() {
   const wrongIds = new Set(state.answers.filter(a => !a.isCorrect).map(a => a.questionId));
   // Берём оригинальные (не перемешанные) вопросы из allQuestions,
@@ -272,6 +390,10 @@ function retryMistakes() {
 // =========
 el.btnStart.addEventListener('click', () => {
   const selected = document.querySelector('input[name="pack"]:checked').value;
+  if (selected === 'browse') {
+    showBrowse();
+    return;
+  }
   const questions = getPackQuestions(selected);
   if (questions.length === 0) {
     console.warn('Пустая пачка');
@@ -280,7 +402,18 @@ el.btnStart.addEventListener('click', () => {
   startSession(questions);
 });
 
+el.btnBrowseBack.addEventListener('click', () => showScreen('start'));
 el.btnNext.addEventListener('click', nextQuestion);
+el.btnSubmitAnswer.addEventListener('click', () => {
+  if (state.locked) {
+    nextQuestion();
+  } else {
+    handleOpenAnswer();
+  }
+});
+el.openInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') handleOpenAnswer();
+});
 el.btnRetry.addEventListener('click', retryMistakes);
 el.btnNewSession.addEventListener('click', () => showScreen('start'));
 

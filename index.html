@@ -3,6 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/svg+xml" href="./favicon.svg">
+  <link rel="apple-touch-icon" href="./apple-touch-icon.svg">
   <title>Геймификация — тренажёр</title>
   <link rel="stylesheet" href="./styles.css">
   <script src="https://cdn.jsdelivr.net/npm/qrcode@1/build/qrcode.min.js"></script>
@@ -10,7 +12,7 @@
 <body>
   <div class="toolbar">
     <button id="btn-qr" class="toolbar-btn" aria-label="QR-код сайта">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="8" height="8" rx="1"/><rect x="14" y="2" width="8" height="8" rx="1"/><rect x="2" y="14" width="8" height="8" rx="1"/><rect x="14" y="14" width="4" height="4"/><line x1="22" y1="14" x2="22" y2="14.01"/><line x1="22" y1="22" x2="22" y2="22.01"/><line x1="18" y1="22" x2="18" y2="22.01"/><line x1="22" y1="18" x2="22" y2="18.01"/></svg>
+      <img src="./icons/qr.svg" class="toolbar-icon" alt="">
     </button>
     <button id="theme-toggle" class="toolbar-btn" aria-label="Переключить тему">🌙</button>
   </div>
@@ -33,16 +35,24 @@
 
       <div class="pack-options">
         <label class="pack-option">
-          <input type="radio" name="pack" value="original" checked>
-          <span>Оригинальные (20)</span>
+          <input type="radio" name="pack" value="multiple_choice" checked>
+          <span>Тестовые (<span id="count-mc">…</span>)</span>
         </label>
         <label class="pack-option">
-          <input type="radio" name="pack" value="additional">
-          <span>Дополнительные (40)</span>
+          <input type="radio" name="pack" value="open">
+          <span>Открытые (<span id="count-open">…</span>)</span>
         </label>
         <label class="pack-option">
           <input type="radio" name="pack" value="all">
-          <span>Все (60)</span>
+          <span>Все (<span id="count-all">…</span>)</span>
+        </label>
+        <label class="pack-option">
+          <input type="radio" name="pack" value="exam">
+          <span>Тест (20 случайных)</span>
+        </label>
+        <label class="pack-option">
+          <input type="radio" name="pack" value="browse">
+          <span>Просмотр ответов</span>
         </label>
       </div>
 
@@ -56,14 +66,26 @@
       <p class="counter"><span id="current-num">1</span> / <span id="total-num">20</span></p>
       <h2 id="question-text" class="question-text"></h2>
       <div id="options-list" class="options-list"></div>
+      <div id="open-answer-area" class="open-answer-area hidden">
+        <input type="text" id="open-input" class="open-input" autocomplete="off" placeholder="Введите ответ…">
+        <button id="btn-submit-answer" class="btn-primary btn-submit">Ответить</button>
+        <div id="open-feedback" class="open-feedback"></div>
+      </div>
       <div id="note-block" class="note-block hidden"></div>
       <button id="btn-next" class="btn-primary hidden">Дальше</button>
+    </section>
+
+    <!-- Экран просмотра -->
+    <section id="screen-browse" class="screen hidden">
+      <h2>Все вопросы и ответы</h2>
+      <div id="browse-list" class="browse-list"></div>
+      <button id="btn-browse-back" class="btn-secondary">Назад</button>
     </section>
 
     <!-- Экран итогов -->
     <section id="screen-results" class="screen hidden">
       <h2>Результаты</h2>
-      <p class="score">Правильно: <span id="score-correct">0</span> из <span id="score-total">0</span></p>
+      <p class="score">Правильно: <span id="score-correct">0</span> из <span id="score-total">0</span> (<span id="score-pct">0%</span>)</p>
       <div id="mistakes-list" class="mistakes-list"></div>
       <div class="results-actions">
         <button id="btn-retry" class="btn-primary" disabled>Повторить только ошибки</button>
